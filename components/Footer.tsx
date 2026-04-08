@@ -1,6 +1,9 @@
-import Link from 'next/link'
+"use client";
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export default function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="border-t border-slate-800 bg-[#0a0c12] py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -10,16 +13,16 @@ export default function Footer() {
             <span className="font-semibold text-white">Land<span className="text-green-400">Measure</span></span>
           </div>
           <p className="text-sm text-slate-500">
-            Google Maps Geometry API asosida ishlaydi • WGS84 koordinat tizimi
+            {t("footer.tech")}
           </p>
           <Link
             href="/tool"
             className="px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-sm font-medium hover:bg-green-500/20 transition-colors"
           >
-            Tool ni ishlatish →
+            {t("footer.tool")}
           </Link>
         </div>
       </div>
     </footer>
-  )
+  );
 }

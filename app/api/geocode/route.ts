@@ -6,29 +6,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Query required" }, { status: 400 });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "API key not configured" },
-      { status: 500 },
-    );
-  }
-
   try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("q", query);
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("limit", "1");
 
-    if (data.status === "OK" && data.results[0]) {
-      const { lat, lng } = data.results[0].geometry.location;
-      return NextResponse.json({
-        lat,
-        lng,
-        formatted: data.results[0].formatted_address,
-      });
+    const res = await fetch(url.toString(), {
+      headers: {
+        // Nominatim usage policy asks for an identifying UA.
+        // (If you have a domain/email, replace this with something more specific.)
+        "User-Agent": "land-measure (Next.js)",
+        Accept: "application/json",
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      return NextResponse.json({ error: "Geocoding failed" }, { status: 502 });
     }
 
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const data = (await res.json()) as Array<{
+      lat: string;
+      lon: string;
+      display_name: string;
+    }>;
+
+    const first = data[0];
+    if (!first) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    return NextResponse.json({
+      lat: Number(first.lat),
+      lng: Number(first.lon),
+      formatted: first.display_name,
+    });
   } catch {
     return NextResponse.json({ error: "Geocoding failed" }, { status: 500 });
   }

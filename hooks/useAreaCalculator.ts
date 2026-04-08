@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { computeAreaResult, AreaResult, SavedAreaResult } from "@/lib/geoUtils";
+import {
+  computeAreaResult,
+  AreaResult,
+  SavedAreaResult,
+  LatLng,
+} from "@/lib/geoUtils";
 
 const STORAGE_KEY = "land-measure:saved-results";
+
+export interface PolygonState {
+  id: string;
+  points: LatLng[];
+}
 
 function loadSavedResults(): SavedAreaResult[] {
   if (typeof window === "undefined") return [];
@@ -19,14 +29,13 @@ function loadSavedResults(): SavedAreaResult[] {
 
 export function useAreaCalculator() {
   const [result, setResult] = useState<AreaResult | null>(null);
-  const [polygons, setPolygons] = useState<google.maps.Polygon[]>([]);
+  const [polygons, setPolygons] = useState<PolygonState[]>([]);
   const [savedResults, setSavedResults] = useState<SavedAreaResult[]>(() =>
     loadSavedResults(),
   );
   const [isDrawing, setIsDrawing] = useState(false);
 
   const activeResultIdRef = useRef<string | null>(null);
-  const polygonListenersRef = useRef<google.maps.MapsEventListener[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,48 +65,63 @@ export function useAreaCalculator() {
     });
   }, []);
 
+  const selectPolygon = useCallback(
+    (id: string) => {
+      const polygon = polygons.find((p) => p.id === id);
+      if (!polygon) return;
+
+      activeResultIdRef.current = id;
+      const nextResult = computeAreaResult(polygon.points);
+      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
+
+      setResult(nextResult);
+      upsertSavedResult(nextResult);
+    },
+    [polygons, upsertSavedResult],
+  );
+
   const handlePolygonComplete = useCallback(
-    (polygon: google.maps.Polygon) => {
-      activeResultIdRef.current = crypto.randomUUID();
-      setPolygons((prev) => [...prev, polygon]);
+    (points: LatLng[]) => {
+      if (points.length < 3) return;
+
+      const id = crypto.randomUUID();
+      activeResultIdRef.current = id;
+
+      setPolygons((prev) => [{ id, points }, ...prev]);
       setIsDrawing(false);
 
-      const update = () => {
-        const path = polygon.getPath();
-        const coords: google.maps.LatLng[] = [];
+      const nextResult = computeAreaResult(points);
+      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
 
-        for (let i = 0; i < path.getLength(); i += 1) {
-          coords.push(path.getAt(i));
-        }
+      setResult(nextResult);
+      upsertSavedResult(nextResult);
+    },
+    [upsertSavedResult],
+  );
 
-        const nextResult = computeAreaResult(coords, path.getLength());
-        if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
-
-        setResult(nextResult);
-        upsertSavedResult(nextResult);
-      };
-
-      update();
-
-      polygonListenersRef.current.push(
-        polygon.getPath().addListener("set_at", update),
-        polygon.getPath().addListener("insert_at", update),
-        polygon.getPath().addListener("remove_at", update),
+  const updatePolygon = useCallback(
+    (id: string, points: LatLng[]) => {
+      setPolygons((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, points } : p)),
       );
+
+      if (activeResultIdRef.current !== id) return;
+
+      const nextResult = computeAreaResult(points);
+      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
+
+      setResult(nextResult);
+      upsertSavedResult(nextResult);
     },
     [upsertSavedResult],
   );
 
   const clearAll = useCallback(() => {
-    polygonListenersRef.current.forEach((listener) => listener.remove());
-    polygonListenersRef.current = [];
-
-    polygons.forEach((polygon) => polygon.setMap(null));
     setPolygons([]);
     setResult(null);
     setIsDrawing(false);
     activeResultIdRef.current = null;
-  }, [polygons]);
+  }, []);
 
   const startDrawing = useCallback(() => {
     activeResultIdRef.current = null;
@@ -128,7 +152,11 @@ export function useAreaCalculator() {
     result,
     savedResults,
     isDrawing,
+    polygons,
+    activePolygonId: activeResultIdRef.current,
     handlePolygonComplete,
+    updatePolygon,
+    selectPolygon,
     clearAll,
     startDrawing,
     stopDrawing,

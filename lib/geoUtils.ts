@@ -1,3 +1,5 @@
+import * as turf from "@turf/turf";
+
 export interface AreaResult {
   sqMeters: number;
   sotka: number;
@@ -16,9 +18,25 @@ export interface SavedAreaResult extends AreaResult {
   updatedAt: string;
 }
 
+export type LatLng = { lat: number; lng: number };
+
+function toClosedRing(path: LatLng[]): [number, number][] {
+  const ring: [number, number][] = path.map((p) => [p.lng, p.lat]);
+  if (ring.length === 0) return ring;
+
+  const first = ring[0]!;
+  const last = ring[ring.length - 1]!;
+
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    ring.push(first);
+  }
+
+  return ring;
+}
+
 export function computeAreaResult(
-  path: google.maps.LatLng[],
-  pointCount: number,
+  path: LatLng[],
+  pointCount: number = path.length,
 ): AreaResult {
   if (path.length < 3) {
     return {
@@ -33,9 +51,16 @@ export function computeAreaResult(
     };
   }
 
-  const areaSqM = google.maps.geometry.spherical.computeArea(path);
-  const closedPath = path[0] ? [...path, path[0]] : path;
-  const perimeterM = google.maps.geometry.spherical.computeLength(closedPath);
+  // Turf expects [lng, lat] and a closed ring for polygons.
+  // It computes geodesic area on WGS84 (spherical approximation).
+  const ring = toClosedRing(path);
+  const polygon = turf.polygon([ring]);
+  const areaSqM = turf.area(polygon);
+
+  // Perimeter: length of the outer ring line in kilometers -> meters.
+  const line = turf.lineString(ring);
+  const perimeterKm = turf.length(line, { units: "kilometers" });
+  const perimeterM = perimeterKm * 1000;
 
   return {
     sqMeters: areaSqM,
@@ -44,7 +69,7 @@ export function computeAreaResult(
     sqKm: areaSqM / 1_000_000,
     acres: areaSqM / 4046.86,
     perimeter: perimeterM,
-    perimeterKm: perimeterM / 1000,
+    perimeterKm,
     pointCount,
   };
 }

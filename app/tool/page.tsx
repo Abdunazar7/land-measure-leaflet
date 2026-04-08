@@ -1,9 +1,11 @@
 "use client";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { useAreaCalculator } from "@/hooks/useAreaCalculator";
+import type { LatLng } from "@/lib/geoUtils";
+import type { Map as LeafletMap } from "leaflet";
 
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ssr: false,
@@ -16,6 +18,10 @@ export default function ToolPage() {
     isDrawing,
     polygonCount,
     handlePolygonComplete,
+    polygons,
+    activePolygonId,
+    updatePolygon,
+    selectPolygon,
     clearAll,
     startDrawing,
     stopDrawing,
@@ -23,23 +29,24 @@ export default function ToolPage() {
     clearSavedResults,
   } = useAreaCalculator();
 
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const [searchTarget, setSearchTarget] = useState<LatLng | null>(null);
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
+  const handleMapLoad = useCallback((map: LeafletMap) => {
     mapRef.current = map;
-    geocoderRef.current = new google.maps.Geocoder();
   }, []);
 
-  const handleSearch = useCallback((query: string) => {
-    if (!geocoderRef.current || !mapRef.current) return;
+  const handleSearch = useCallback(async (query: string) => {
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { lat: number; lng: number };
 
-    geocoderRef.current.geocode({ address: query }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        mapRef.current?.setCenter(results[0].geometry.location);
-        mapRef.current?.setZoom(16);
-      }
-    });
+      setSearchTarget({ lat: data.lat, lng: data.lng });
+      mapRef.current?.setView([data.lat, data.lng], 16, { animate: true });
+    } catch {
+      // ignore
+    }
   }, []);
 
   return (
@@ -68,6 +75,11 @@ export default function ToolPage() {
             isDrawing={isDrawing}
             onMapLoad={handleMapLoad}
             onStopDrawing={stopDrawing}
+            polygons={polygons}
+            activePolygonId={activePolygonId}
+            onPolygonChange={updatePolygon}
+            onPolygonSelect={selectPolygon}
+            searchTarget={searchTarget}
           />
         </div>
       </main>

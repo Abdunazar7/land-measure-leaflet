@@ -2,6 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { SupportedLanguage } from "@/lib/i18n";
+import { supportedLanguages } from "@/lib/i18n";
 
 type ThemeMode = "dark" | "light";
 
@@ -13,14 +16,24 @@ const getInitialTheme = (): ThemeMode => {
 };
 
 export default function Navbar() {
+  const { t, i18n } = useTranslation();
   const pathname = usePathname();
   const isTool = pathname === "/tool";
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [lang, setLang] = useState<SupportedLanguage>("en");
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("lang");
+    const initial =
+      stored === "en" || stored === "ru" || stored === "uz" ? stored : "en";
+    setLang(initial);
+    void i18n.changeLanguage(initial);
+  }, [i18n]);
 
   const toggleTheme = () => {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
@@ -59,8 +72,8 @@ export default function Navbar() {
                 : "text-(--text-secondary) hover:bg-black/5 hover:text-(--text-primary) dark:hover:bg-white/5"
             }`}
           >
-            <span className="hidden sm:inline">Bosh sahifa</span>
-            <span className="sm:hidden">Bosh</span>
+            <span className="hidden sm:inline">{t("nav.home")}</span>
+            <span className="sm:hidden">{t("nav.home")}</span>
           </Link>
           <Link
             href="/tool"
@@ -70,17 +83,37 @@ export default function Navbar() {
                 : "border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20"
             }`}
           >
-            <span className="hidden sm:inline">Tool ni ochish →</span>
-            <span className="sm:hidden">Tool →</span>
+            <span className="hidden sm:inline">{t("nav.tool")}</span>
+            <span className="sm:hidden">{t("nav.tool")}</span>
           </Link>
+          <label className="sr-only" htmlFor="lang">
+            {t("lang.label")}
+          </label>
+          <select
+            id="lang"
+            value={lang}
+            onChange={(e) => {
+              const next = e.target.value as SupportedLanguage;
+              setLang(next);
+              window.localStorage.setItem("lang", next);
+              void i18n.changeLanguage(next);
+            }}
+            className="h-9 rounded-xl border border-(--border-muted) bg-(--panel-soft) px-2 text-xs text-(--text-primary) outline-none sm:h-10 sm:text-sm"
+          >
+            {supportedLanguages.map((code) => (
+              <option key={code} value={code}>
+                {code.toUpperCase()}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={toggleTheme}
             aria-pressed={theme === "dark"}
             aria-label={
-              theme === "dark" ? "Light modega o‘tish" : "Dark modega o‘tish"
+              theme === "dark" ? t("theme.toLight") : t("theme.toDark")
             }
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            title={theme === "dark" ? t("theme.toLight") : t("theme.toDark")}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-(--border-muted) bg-(--panel-soft) text-base transition-transform hover:scale-105 sm:h-10 sm:w-10 sm:text-lg"
           >
             <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import ResultCard from "./ResultCard";
+import { useTranslation } from "react-i18next";
 import {
   AreaResult,
   SavedAreaResult,
@@ -21,14 +22,6 @@ interface Props {
   onClearSavedResults: () => void;
 }
 
-const formatSavedAt = (value: string) =>
-  new Intl.DateTimeFormat("uz-UZ", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-
 export default function Sidebar({
   result,
   savedResults,
@@ -41,7 +34,23 @@ export default function Sidebar({
   onDeleteSavedResult,
   onClearSavedResults,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
+
+  const formatSavedAt = (value: string) =>
+    new Intl.DateTimeFormat(
+      i18n.language === "ru"
+        ? "ru-RU"
+        : i18n.language === "en"
+          ? "en-US"
+          : "uz-UZ",
+      {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    ).format(new Date(value));
 
   const handleSearch = () => {
     if (searchValue.trim()) onSearch(searchValue.trim());
@@ -59,12 +68,12 @@ export default function Sidebar({
             <div className="min-w-0">
               <h2 className="font-bold text-white text-[15px]">LandMeasure</h2>
               <p className="text-[11px] text-slate-500 truncate">
-                Yer maydoni o‘lchagich
+                {t("sidebar.subtitle")}
               </p>
             </div>
           </div>
           <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] sm:text-[11px] text-green-400 whitespace-nowrap">
-            {polygonCount} ta maydon
+            {t("sidebar.areasCount", { count: polygonCount })}
           </div>
         </div>
       </div>
@@ -72,7 +81,7 @@ export default function Sidebar({
       {/* Search */}
       <div className="p-3 sm:p-4 border-b border-slate-800">
         <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">
-          📍 Joylashuv qidirish
+          {t("sidebar.searchTitle")}
         </p>
         <div className="flex gap-2">
           <input
@@ -80,7 +89,7 @@ export default function Sidebar({
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="Shahar, ko'cha, hudud..."
+            placeholder={t("sidebar.searchPlaceholder")}
             className="min-w-0 flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500/20"
           />
           <button
@@ -96,10 +105,10 @@ export default function Sidebar({
       <div className="p-3 sm:p-4 border-b border-slate-800">
         <div className="flex items-center justify-between gap-2 mb-3">
           <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-            🔧 Boshqaruv
+            {t("sidebar.controlsTitle")}
           </p>
           <span className="text-[11px] text-slate-500">
-            {isDrawing ? "ESC bilan chiqish mumkin" : "Chizish o‘chiq"}
+            {isDrawing ? t("sidebar.escHintOn") : t("sidebar.drawingOff")}
           </span>
         </div>
 
@@ -113,7 +122,7 @@ export default function Sidebar({
             }`}
           >
             <span className="text-base">✏️</span>
-            {isDrawing ? "Chizilmoqda..." : "Yangi maydon chizish"}
+            {isDrawing ? t("sidebar.drawing") : t("sidebar.drawNew")}
           </button>
 
           <button
@@ -126,13 +135,13 @@ export default function Sidebar({
             }`}
           >
             <span className="text-base">{isDrawing ? "⨯" : "🗑️"}</span>
-            {isDrawing ? "Chizishni bekor qilish" : "Hammasini tozalash"}
+            {isDrawing ? t("sidebar.cancelDrawing") : t("sidebar.clearAll")}
           </button>
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3 py-2.5 text-xs text-slate-400 leading-relaxed">
           {isDrawing
-            ? "Xaritada nuqtalarni bosing. Adashsangiz “Chizishni bekor qilish” yoki ESC dan foydalaning."
+            ? t("sidebar.drawHelp")
             : "Xaritaga tasodifan chizilmasligi uchun chizish rejimi faqat tugma orqali yoqiladi."}
         </div>
       </div>
@@ -142,24 +151,21 @@ export default function Sidebar({
         {result ? (
           <section>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">
-              📊 Joriy natija
+              {t("sidebar.currentResult")}
             </p>
             <ResultCard result={result} />
           </section>
         ) : (
           <section className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-4">
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">
-              📖 Yo‘riqnoma
+              {t("sidebar.guide")}
             </p>
             <div className="space-y-2.5">
               {[
-                { n: "1", t: "“Yangi maydon chizish” tugmasini bosing" },
-                { n: "2", t: "Xaritada chegarani nuqtama-nuqta belgilang" },
-                { n: "3", t: "Xato bosilsa ESC yoki bekor qilishni bosing" },
-                {
-                  n: "4",
-                  t: "Natija avtomatik saqlanadi va ro‘yxatga qo‘shiladi",
-                },
+                { n: "1", t: t("sidebar.drawNew") },
+                { n: "2", t: t("map.modeDraw") },
+                { n: "3", t: t("map.tipDraw") },
+                { n: "4", t: t("sidebar.saved") },
               ].map((step) => (
                 <div key={step.n} className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-[10px] text-slate-400">
@@ -178,7 +184,7 @@ export default function Sidebar({
         <section>
           <div className="flex items-center justify-between gap-3 mb-3">
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-              💾 Saqlangan o‘lchovlar
+              {t("sidebar.saved")}
             </p>
             {savedResults.length > 0 && (
               <button
@@ -186,7 +192,7 @@ export default function Sidebar({
                 onClick={onClearSavedResults}
                 className="text-[11px] text-red-400 hover:text-red-300"
               >
-                Hammasini o‘chirish
+                {t("sidebar.deleteAll")}
               </button>
             )}
           </div>
@@ -215,7 +221,7 @@ export default function Sidebar({
                         onClick={() => onDeleteSavedResult(item.id)}
                         className="shrink-0 rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20"
                       >
-                        O‘chirish
+                        {t("sidebar.delete")}
                       </button>
                     </div>
 
@@ -239,8 +245,7 @@ export default function Sidebar({
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-700/70 bg-slate-800/20 px-4 py-5 text-center text-sm text-slate-500">
-              Hozircha saqlangan natija yo‘q. Hisoblaganingizdan keyin bu yerda
-              avtomatik ko‘rinadi.
+              {t("sidebar.emptySaved")}
             </div>
           )}
         </section>
@@ -249,7 +254,7 @@ export default function Sidebar({
       {/* Footer */}
       <div className="p-3 border-t border-slate-800">
         <p className="text-[10px] text-slate-600 text-center">
-          Google Maps Geometry API • WGS84
+          Turf.js (WGS84) • OpenStreetMap
         </p>
       </div>
     </aside>

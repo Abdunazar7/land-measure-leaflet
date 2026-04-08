@@ -1,12 +1,14 @@
+"use client";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useTranslation } from "react-i18next";
 
 const features = [
   {
     icon: "🗺️",
     title: "Interaktiv xarita",
-    desc: "Google Maps da istalgan joyni toping va maydon chegarasini chizing. Yo'ldosh tasvirlari bilan aniq belgilang.",
+    desc: "Xaritada istalgan joyni toping va maydon chegarasini chizing. Yo'ldosh tasvirlari bilan aniq belgilang.",
   },
   {
     icon: "📐",
@@ -21,7 +23,7 @@ const features = [
   {
     icon: "🎯",
     title: "Aniq hisoblash",
-    desc: "Google'ning Spherical Geometry algoritmidan foydalanadi. Yer yuzasining egriligini hisobga oladi.",
+    desc: "Turf.js geodezik hisoblashlaridan foydalanadi. Yer yuzasining egriligini hisobga oladi.",
   },
   {
     icon: "⚡",
@@ -77,6 +79,7 @@ const steps = [
 ];
 
 export default function HomePage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-[#0a0c12] grid-bg">
       <Navbar />
@@ -86,7 +89,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium mb-8 animate-fade-in-up">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 pulse-dot" />
-            Google Maps bilan ishlaydi
+            {t("home.badge")}
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6 animate-fade-in-up delay-100">
