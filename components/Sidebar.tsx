@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
 import ResultCard from "./ResultCard";
+import SearchBox from "./SearchBox";
 import { useTranslation } from "react-i18next";
 import {
   AreaResult,
@@ -8,103 +8,175 @@ import {
   formatArea,
   formatPerimeter,
 } from "@/lib/geoUtils";
+import { formatCoordinates, type GeoPlace } from "@/lib/geocode";
+import type { GeolocationController } from "@/hooks/useGeolocation";
 
 interface Props {
   result: AreaResult | null;
   savedResults: SavedAreaResult[];
   isDrawing: boolean;
   polygonCount: number;
-  onSearch: (query: string) => void;
+  gps: GeolocationController;
+  onSelectPlace: (place: GeoPlace) => void;
+  getViewbox?: () => string | null;
   onClear: () => void;
   onStartDrawing: () => void;
   onStopDrawing: () => void;
   onDeleteSavedResult: (id: string) => void;
   onClearSavedResults: () => void;
+  onShowSavedResult: (id: string) => void;
 }
+
+const LOCALES: Record<string, string> = {
+  ru: "ru-RU",
+  en: "en-US",
+  uz: "uz-UZ",
+};
 
 export default function Sidebar({
   result,
   savedResults,
   isDrawing,
   polygonCount,
-  onSearch,
+  gps,
+  onSelectPlace,
+  getViewbox,
   onClear,
   onStartDrawing,
   onStopDrawing,
   onDeleteSavedResult,
   onClearSavedResults,
+  onShowSavedResult,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const [searchValue, setSearchValue] = useState("");
 
   const formatSavedAt = (value: string) =>
-    new Intl.DateTimeFormat(
-      i18n.language === "ru"
-        ? "ru-RU"
-        : i18n.language === "en"
-          ? "en-US"
-          : "uz-UZ",
-      {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      },
-    ).format(new Date(value));
+    new Intl.DateTimeFormat(LOCALES[i18n.language] ?? "en-US", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
 
-  const handleSearch = () => {
-    if (searchValue.trim()) onSearch(searchValue.trim());
-  };
+  const gpsError = gps.errorCode ? t(`gps.errors.${gps.errorCode}`) : null;
 
   return (
-    <aside className="h-full w-full bg-[#0f1117] border-b border-slate-800 lg:border-b-0 lg:border-r flex flex-col overflow-hidden">
+    <aside className="flex w-full flex-col border-b border-slate-800 bg-[#0f1117] lg:h-full lg:overflow-hidden lg:border-b-0 lg:border-r">
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-800">
+      <div className="border-b border-slate-800 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center text-black font-bold shadow-lg shadow-green-500/30 shrink-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-500 font-bold text-black shadow-lg shadow-green-500/30">
               L
             </div>
             <div className="min-w-0">
-              <h2 className="font-bold text-white text-[15px]">LandMeasure</h2>
-              <p className="text-[11px] text-slate-500 truncate">
+              <h2 className="text-[15px] font-bold text-white">LandMeasure</h2>
+              <p className="truncate text-[11px] text-slate-500">
                 {t("sidebar.subtitle")}
               </p>
             </div>
           </div>
-          <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] sm:text-[11px] text-green-400 whitespace-nowrap">
+          <div className="whitespace-nowrap rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[10px] text-green-400 sm:text-[11px]">
             {t("sidebar.areasCount", { count: polygonCount })}
           </div>
         </div>
       </div>
 
       {/* Search */}
-      <div className="p-3 sm:p-4 border-b border-slate-800">
-        <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">
+      <div className="border-b border-slate-800 p-3 sm:p-4">
+        <p className="mb-2 text-[10px] uppercase tracking-widest text-slate-500">
           {t("sidebar.searchTitle")}
         </p>
+        <SearchBox onSelect={onSelectPlace} getViewbox={getViewbox} />
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          {t("search.hint")}
+        </p>
+      </div>
+
+      {/* Live location */}
+      <div className="border-b border-slate-800 p-3 sm:p-4">
+        <p className="mb-2 text-[10px] uppercase tracking-widest text-slate-500">
+          {t("gps.title")}
+        </p>
+
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder={t("sidebar.searchPlaceholder")}
-            className="min-w-0 flex-1 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500/20"
-          />
           <button
-            onClick={handleSearch}
-            className="shrink-0 px-3 py-2.5 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg text-sm"
+            type="button"
+            onClick={gps.locate}
+            className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium ${
+              gps.status === "active"
+                ? "border border-blue-400/30 bg-blue-500/15 text-blue-200"
+                : "border border-slate-700 bg-slate-800/50 text-slate-200 hover:bg-slate-800"
+            }`}
           >
-            ↗
+            {gps.status === "locating" ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <span aria-hidden="true">◎</span>
+            )}
+            <span className="truncate">
+              {gps.status === "locating"
+                ? t("gps.locating")
+                : gps.status === "active"
+                  ? t("gps.recenter")
+                  : t("gps.myLocation")}
+            </span>
           </button>
+
+          {gps.status === "active" && (
+            <button
+              type="button"
+              onClick={gps.stop}
+              className="shrink-0 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-xs text-slate-300 hover:bg-slate-800"
+            >
+              {t("gps.stop")}
+            </button>
+          )}
         </div>
+
+        {gps.position && (
+          <div className="mt-2.5 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3 py-2.5">
+            {gps.address ? (
+              <p className="truncate text-xs font-medium text-white">
+                {gps.address.name}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400">{t("gps.resolving")}</p>
+            )}
+            {gps.address?.detail && (
+              <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                {gps.address.detail}
+              </p>
+            )}
+            <p className="mt-1.5 font-mono text-[11px] text-slate-400">
+              {formatCoordinates(gps.position)}
+            </p>
+            <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-slate-500">
+                {t("gps.accuracy", {
+                  metres: Math.round(gps.position.accuracy),
+                })}
+              </span>
+              {gps.follow && (
+                <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 text-blue-300">
+                  {t("gps.followingShort")}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {gpsError && (
+          <p className="mt-2.5 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[11px] leading-relaxed text-red-300">
+            {gpsError}
+          </p>
+        )}
       </div>
 
       {/* Controls */}
-      <div className="p-3 sm:p-4 border-b border-slate-800">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+      <div className="border-b border-slate-800 p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">
             {t("sidebar.controlsTitle")}
           </p>
           <span className="text-[11px] text-slate-500">
@@ -112,13 +184,13 @@ export default function Sidebar({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
           <button
             onClick={onStartDrawing}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
               isDrawing
                 ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
-                : "bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20"
+                : "border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20"
             }`}
           >
             <span className="text-base">✏️</span>
@@ -128,10 +200,10 @@ export default function Sidebar({
           <button
             onClick={isDrawing ? onStopDrawing : onClear}
             disabled={!isDrawing && polygonCount === 0}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-30 ${
               isDrawing
-                ? "bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20"
-                : "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+                ? "border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                : "border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
             }`}
           >
             <span className="text-base">{isDrawing ? "⨯" : "🗑️"}</span>
@@ -139,40 +211,33 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3 py-2.5 text-xs text-slate-400 leading-relaxed">
-          {isDrawing
-            ? t("sidebar.drawHelp")
-            : "Xaritaga tasodifan chizilmasligi uchun chizish rejimi faqat tugma orqali yoqiladi."}
+        <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3 py-2.5 text-xs leading-relaxed text-slate-400">
+          {isDrawing ? t("sidebar.drawHelp") : t("sidebar.drawHelpOff")}
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-4">
+      <div className="space-y-4 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {/* Current result or instructions */}
         {result ? (
           <section>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-500">
               {t("sidebar.currentResult")}
             </p>
             <ResultCard result={result} />
           </section>
         ) : (
           <section className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-4">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-500">
               {t("sidebar.guide")}
             </p>
             <div className="space-y-2.5">
-              {[
-                { n: "1", t: t("sidebar.drawNew") },
-                { n: "2", t: t("map.modeDraw") },
-                { n: "3", t: t("map.tipDraw") },
-                { n: "4", t: t("sidebar.saved") },
-              ].map((step) => (
-                <div key={step.n} className="flex items-start gap-3">
+              {["1", "2", "3", "4"].map((step) => (
+                <div key={step} className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-[10px] text-slate-400">
-                    {step.n}
+                    {step}
                   </span>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    {step.t}
+                  <p className="text-xs leading-relaxed text-slate-400">
+                    {t(`sidebar.step${step}`)}
                   </p>
                 </div>
               ))}
@@ -182,8 +247,8 @@ export default function Sidebar({
 
         {/* Saved results */}
         <section>
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[10px] uppercase tracking-widest text-slate-500">
               {t("sidebar.saved")}
             </p>
             {savedResults.length > 0 && (
@@ -201,6 +266,7 @@ export default function Sidebar({
             <div className="space-y-2">
               {savedResults.map((item) => {
                 const main = formatArea(item);
+                const canShow = (item.points?.length ?? 0) >= 3;
 
                 return (
                   <div
@@ -209,32 +275,47 @@ export default function Sidebar({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
-                          {item.label}
+                        <p className="truncate text-sm font-semibold text-white">
+                          {t("sidebar.measurement")} {item.label}
                         </p>
                         <p className="text-[11px] text-slate-500">
                           {formatSavedAt(item.updatedAt)}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSavedResult(item.id)}
-                        className="shrink-0 rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20"
-                      >
-                        {t("sidebar.delete")}
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {canShow && (
+                          <button
+                            type="button"
+                            onClick={() => onShowSavedResult(item.id)}
+                            className="rounded-lg border border-slate-600/60 bg-slate-900/40 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-900/70"
+                          >
+                            {t("sidebar.showOnMap")}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSavedResult(item.id)}
+                          className="rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20"
+                        >
+                          {t("sidebar.delete")}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
-                        <p className="text-slate-500 mb-1">Maydon</p>
-                        <p className="text-white font-medium">
+                        <p className="mb-1 text-slate-500">
+                          {t("sidebar.area")}
+                        </p>
+                        <p className="font-medium text-white">
                           {main.value} {main.unit}
                         </p>
                       </div>
                       <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
-                        <p className="text-slate-500 mb-1">Perimetr</p>
-                        <p className="text-blue-400 font-medium">
+                        <p className="mb-1 text-slate-500">
+                          {t("sidebar.perimeter")}
+                        </p>
+                        <p className="font-medium text-blue-400">
                           {formatPerimeter(item.perimeter)}
                         </p>
                       </div>
@@ -252,9 +333,9 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-slate-800">
-        <p className="text-[10px] text-slate-600 text-center">
-          Turf.js (WGS84) • OpenStreetMap
+      <div className="border-t border-slate-800 p-3">
+        <p className="text-center text-[10px] text-slate-600">
+          {t("sidebar.footer")}
         </p>
       </div>
     </aside>

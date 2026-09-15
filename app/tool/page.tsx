@@ -1,27 +1,39 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useTranslation } from "react-i18next";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { useAreaCalculator } from "@/hooks/useAreaCalculator";
-import type { LatLng } from "@/lib/geoUtils";
-import type { Map as LeafletMap } from "leaflet";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { boundsOf } from "@/lib/geoUtils";
+import type { GeoPlace } from "@/lib/geocode";
+import type { MapFocus } from "@/components/MapComponent";
 
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-[300px] items-center justify-center bg-[#0f1117]">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-green-500 border-t-transparent" />
+    </div>
+  ),
 });
 
 export default function ToolPage() {
+  const { i18n } = useTranslation();
+
   const {
     result,
     savedResults,
     isDrawing,
-    polygonCount,
-    handlePolygonComplete,
     polygons,
     activePolygonId,
+    polygonCount,
+    handlePolygonComplete,
     updatePolygon,
     selectPolygon,
+    deletePolygon,
+    showSavedResult,
     clearAll,
     startDrawing,
     stopDrawing,
@@ -29,57 +41,87 @@ export default function ToolPage() {
     clearSavedResults,
   } = useAreaCalculator();
 
-  const mapRef = useRef<LeafletMap | null>(null);
-  const [searchTarget, setSearchTarget] = useState<LatLng | null>(null);
+  const gps = useGeolocation({ lang: i18n.language });
 
-  const handleMapLoad = useCallback((map: LeafletMap) => {
-    mapRef.current = map;
+  const [focus, setFocus] = useState<MapFocus | null>(null);
+  const focusKeyRef = useRef(0);
+  const viewboxRef = useRef<string | null>(null);
+
+  const handleViewportChange = useCallback((viewbox: string) => {
+    viewboxRef.current = viewbox;
   }, []);
 
-  const handleSearch = useCallback(async (query: string) => {
-    try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-      if (!res.ok) return;
-      const data = (await res.json()) as { lat: number; lng: number };
+  const getViewbox = useCallback(() => viewboxRef.current, []);
 
-      setSearchTarget({ lat: data.lat, lng: data.lng });
-      mapRef.current?.setView([data.lat, data.lng], 16, { animate: true });
-    } catch {
-      // ignore
-    }
+  const handleSelectPlace = useCallback((place: GeoPlace) => {
+    focusKeyRef.current += 1;
+
+    setFocus({
+      key: focusKeyRef.current,
+      lat: place.lat,
+      lng: place.lng,
+      label: place.name,
+      detail: place.detail,
+      bbox: place.bbox,
+      showMarker: true,
+    });
   }, []);
+
+  const handleShowSavedResult = useCallback(
+    (id: string) => {
+      const points = showSavedResult(id);
+      if (!points || points.length === 0) return;
+
+      focusKeyRef.current += 1;
+
+      setFocus({
+        key: focusKeyRef.current,
+        lat: points[0]!.lat,
+        lng: points[0]!.lng,
+        bbox: boundsOf(points) ?? undefined,
+        zoom: 18,
+        showMarker: false,
+      });
+    },
+    [showSavedResult],
+  );
 
   return (
-    <div className="h-svh overflow-hidden bg-[#0a0c12]">
+    <div className="min-h-svh bg-[#0a0c12] lg:h-svh lg:overflow-hidden">
       <Navbar />
 
-      <main className="mt-16 flex h-[calc(100svh-4rem)] flex-col overflow-hidden lg:flex-row">
-        <div className="order-2 h-[44%] min-h-0 lg:order-1 lg:h-full lg:min-w-90 lg:w-90 xl:min-w-96 xl:w-96">
+      <main className="mt-16 flex min-h-[calc(100svh-4rem)] flex-col lg:h-[calc(100svh-4rem)] lg:flex-row lg:overflow-hidden">
+        <div className="order-1 h-[52svh] min-h-[320px] min-w-0 shrink-0 lg:order-2 lg:h-full lg:flex-1">
+          <MapComponent
+            polygons={polygons}
+            activePolygonId={activePolygonId}
+            isDrawing={isDrawing}
+            onPolygonComplete={handlePolygonComplete}
+            onPolygonChange={updatePolygon}
+            onPolygonSelect={selectPolygon}
+            onPolygonDelete={deletePolygon}
+            onStopDrawing={stopDrawing}
+            focus={focus}
+            onViewportChange={handleViewportChange}
+            gps={gps}
+          />
+        </div>
+
+        <div className="order-2 min-w-0 flex-1 lg:order-1 lg:h-full lg:w-90 lg:min-w-90 lg:flex-none xl:w-96 xl:min-w-96">
           <Sidebar
             result={result}
             savedResults={savedResults}
             isDrawing={isDrawing}
             polygonCount={polygonCount}
-            onSearch={handleSearch}
+            gps={gps}
+            onSelectPlace={handleSelectPlace}
+            getViewbox={getViewbox}
             onClear={clearAll}
             onStartDrawing={startDrawing}
             onStopDrawing={stopDrawing}
             onDeleteSavedResult={deleteSavedResult}
             onClearSavedResults={clearSavedResults}
-          />
-        </div>
-
-        <div className="order-1 h-[56%] min-h-80 min-w-0 lg:order-2 lg:h-full lg:flex-1">
-          <MapComponent
-            onPolygonComplete={handlePolygonComplete}
-            isDrawing={isDrawing}
-            onMapLoad={handleMapLoad}
-            onStopDrawing={stopDrawing}
-            polygons={polygons}
-            activePolygonId={activePolygonId}
-            onPolygonChange={updatePolygon}
-            onPolygonSelect={selectPolygon}
-            searchTarget={searchTarget}
+            onShowSavedResult={handleShowSavedResult}
           />
         </div>
       </main>

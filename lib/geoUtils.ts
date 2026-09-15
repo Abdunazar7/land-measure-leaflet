@@ -16,6 +16,8 @@ export interface SavedAreaResult extends AreaResult {
   label: string;
   createdAt: string;
   updatedAt: string;
+  /** Outline of the measured shape, so it can be shown on the map again. */
+  points?: LatLng[];
 }
 
 export type LatLng = { lat: number; lng: number };
@@ -74,22 +76,67 @@ export function computeAreaResult(
   };
 }
 
-export function formatArea(result: AreaResult): {
+export interface FormattedArea {
   value: string;
   unit: string;
   label: string;
-} {
+  /** i18n key for the unit name */
+  labelKey: string;
+}
+
+export function formatArea(result: AreaResult): FormattedArea {
   const { sqMeters, sotka, hectares, sqKm } = result;
 
   if (sqMeters < 1000) {
-    return { value: sqMeters.toFixed(1), unit: "m²", label: "Kvadrat metr" };
+    return {
+      value: sqMeters.toFixed(1),
+      unit: "m²",
+      label: "Kvadrat metr",
+      labelKey: "units.sqMeters",
+    };
   } else if (sqMeters < 10_000) {
-    return { value: sotka.toFixed(2), unit: "sotka", label: "Sotka" };
+    return {
+      value: sotka.toFixed(2),
+      unit: "sotka",
+      label: "Sotka",
+      labelKey: "units.sotka",
+    };
   } else if (sqMeters < 1_000_000) {
-    return { value: hectares.toFixed(3), unit: "ga", label: "Gektar" };
+    return {
+      value: hectares.toFixed(3),
+      unit: "ga",
+      label: "Gektar",
+      labelKey: "units.hectares",
+    };
   }
 
-  return { value: sqKm.toFixed(4), unit: "km²", label: "Kvadrat km" };
+  return {
+    value: sqKm.toFixed(4),
+    unit: "km²",
+    label: "Kvadrat km",
+    labelKey: "units.sqKm",
+  };
+}
+
+/** [south, north, west, east] bounds of a shape, matching MapFocus.bbox. */
+export function boundsOf(
+  points: LatLng[],
+): [number, number, number, number] | null {
+  if (points.length === 0) return null;
+
+  let south = points[0]!.lat;
+  let north = points[0]!.lat;
+  let west = points[0]!.lng;
+  let east = points[0]!.lng;
+
+  for (const point of points) {
+    south = Math.min(south, point.lat);
+    north = Math.max(north, point.lat);
+    west = Math.min(west, point.lng);
+    east = Math.max(east, point.lng);
+  }
+
+  return [south, north, west, east];
 }
 
 export function formatPerimeter(meters: number): string {

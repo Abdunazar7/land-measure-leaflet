@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+"use client";
+import { useCallback, useEffect, useState } from "react";
 import {
   computeAreaResult,
   AreaResult,
@@ -20,111 +21,148 @@ function loadSavedResults(): SavedAreaResult[] {
     const rawValue = window.localStorage.getItem(STORAGE_KEY);
     if (!rawValue) return [];
 
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
+    const parsedValue: unknown = JSON.parse(rawValue);
+    return Array.isArray(parsedValue) ? (parsedValue as SavedAreaResult[]) : [];
   } catch {
     return [];
   }
 }
 
+function createId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export function useAreaCalculator() {
   const [result, setResult] = useState<AreaResult | null>(null);
   const [polygons, setPolygons] = useState<PolygonState[]>([]);
+  const [activePolygonId, setActivePolygonId] = useState<string | null>(null);
   const [savedResults, setSavedResults] = useState<SavedAreaResult[]>(() =>
     loadSavedResults(),
   );
   const [isDrawing, setIsDrawing] = useState(false);
 
-  const activeResultIdRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedResults));
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedResults));
+    } catch {
+      // Storage may be full or unavailable; measuring still works.
+    }
   }, [savedResults]);
 
-  const upsertSavedResult = useCallback((nextResult: AreaResult) => {
-    const activeId = activeResultIdRef.current ?? crypto.randomUUID();
+  /** Recomputes the area of a shape and mirrors it into the saved list. */
+  const commitMeasurement = useCallback((id: string, points: LatLng[]) => {
+    const nextResult = computeAreaResult(points);
+    if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
+
+    setResult(nextResult);
+
     const timestamp = new Date().toISOString();
-
-    activeResultIdRef.current = activeId;
-
     setSavedResults((prev) => {
-      const existing = prev.find((item) => item.id === activeId);
+      const existing = prev.find((item) => item.id === id);
+      const others = prev.filter((item) => item.id !== id);
 
       const nextEntry: SavedAreaResult = {
         ...nextResult,
-        id: activeId,
-        label:
-          existing?.label ??
-          `O'lchov ${prev.filter((item) => item.id !== activeId).length + 1}`,
+        id,
+        label: existing?.label ?? `#${others.length + 1}`,
         createdAt: existing?.createdAt ?? timestamp,
         updatedAt: timestamp,
+        points,
       };
 
-      return [nextEntry, ...prev.filter((item) => item.id !== activeId)];
+      return [nextEntry, ...others];
     });
   }, []);
-
-  const selectPolygon = useCallback(
-    (id: string) => {
-      const polygon = polygons.find((p) => p.id === id);
-      if (!polygon) return;
-
-      activeResultIdRef.current = id;
-      const nextResult = computeAreaResult(polygon.points);
-      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
-
-      setResult(nextResult);
-      upsertSavedResult(nextResult);
-    },
-    [polygons, upsertSavedResult],
-  );
 
   const handlePolygonComplete = useCallback(
     (points: LatLng[]) => {
       if (points.length < 3) return;
 
-      const id = crypto.randomUUID();
-      activeResultIdRef.current = id;
+      const id = createId();
 
       setPolygons((prev) => [{ id, points }, ...prev]);
+      setActivePolygonId(id);
       setIsDrawing(false);
-
-      const nextResult = computeAreaResult(points);
-      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
-
-      setResult(nextResult);
-      upsertSavedResult(nextResult);
+      commitMeasurement(id, points);
     },
-    [upsertSavedResult],
+    [commitMeasurement],
   );
 
   const updatePolygon = useCallback(
     (id: string, points: LatLng[]) => {
       setPolygons((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, points } : p)),
+        prev.map((polygon) =>
+          polygon.id === id ? { ...polygon, points } : polygon,
+        ),
       );
-
-      if (activeResultIdRef.current !== id) return;
-
-      const nextResult = computeAreaResult(points);
-      if (nextResult.pointCount < 3 || nextResult.sqMeters <= 0) return;
-
-      setResult(nextResult);
-      upsertSavedResult(nextResult);
+      setActivePolygonId(id);
+      commitMeasurement(id, points);
     },
-    [upsertSavedResult],
+    [commitMeasurement],
+  );
+
+  const selectPolygon = useCallback(
+    (id: string) => {
+      const polygon = polygons.find((item) => item.id === id);
+      if (!polygon) return;
+
+      setActivePolygonId(id);
+      commitMeasurement(id, polygon.points);
+    },
+    [polygons, commitMeasurement],
+  );
+
+  const deletePolygon = useCallback(
+    (id: string) => {
+      setPolygons((prev) => prev.filter((polygon) => polygon.id !== id));
+
+      if (activePolygonId === id) {
+        setActivePolygonId(null);
+        setResult(null);
+      }
+    },
+    [activePolygonId],
+  );
+
+  /**
+   * Brings a saved measurement back onto the map (it survives a page reload)
+   * and returns its outline so the caller can zoom to it.
+   */
+  const showSavedResult = useCallback(
+    (id: string): LatLng[] | null => {
+      const onMap = polygons.find((polygon) => polygon.id === id);
+      if (onMap) {
+        setActivePolygonId(id);
+        setResult(computeAreaResult(onMap.points));
+        return onMap.points;
+      }
+
+      const saved = savedResults.find((item) => item.id === id);
+      const points = saved?.points;
+      if (!points || points.length < 3) return null;
+
+      setPolygons((prev) => [{ id, points }, ...prev]);
+      setActivePolygonId(id);
+      setResult(computeAreaResult(points));
+      return points;
+    },
+    [polygons, savedResults],
   );
 
   const clearAll = useCallback(() => {
     setPolygons([]);
     setResult(null);
     setIsDrawing(false);
-    activeResultIdRef.current = null;
+    setActivePolygonId(null);
   }, []);
 
   const startDrawing = useCallback(() => {
-    activeResultIdRef.current = null;
+    setActivePolygonId(null);
     setIsDrawing(true);
   }, []);
 
@@ -134,17 +172,17 @@ export function useAreaCalculator() {
 
   const deleteSavedResult = useCallback((id: string) => {
     setSavedResults((prev) => prev.filter((item) => item.id !== id));
-
-    if (activeResultIdRef.current === id) {
-      activeResultIdRef.current = null;
-    }
   }, []);
 
   const clearSavedResults = useCallback(() => {
     setSavedResults([]);
 
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Nothing to do if storage is unavailable.
+      }
     }
   }, []);
 
@@ -153,10 +191,12 @@ export function useAreaCalculator() {
     savedResults,
     isDrawing,
     polygons,
-    activePolygonId: activeResultIdRef.current,
+    activePolygonId,
     handlePolygonComplete,
     updatePolygon,
     selectPolygon,
+    deletePolygon,
+    showSavedResult,
     clearAll,
     startDrawing,
     stopDrawing,
