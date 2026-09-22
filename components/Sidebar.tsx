@@ -1,6 +1,8 @@
 "use client";
+import { useState } from "react";
 import ResultCard from "./ResultCard";
 import SearchBox from "./SearchBox";
+import ShareCardModal from "./ShareCardModal";
 import { useTranslation } from "react-i18next";
 import {
   AreaResult,
@@ -49,6 +51,8 @@ export default function Sidebar({
   onShowSavedResult,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const [cardEntryId, setCardEntryId] = useState<string | null>(null);
+  const cardEntry = savedResults.find((item) => item.id === cardEntryId);
 
   const formatSavedAt = (value: string) =>
     new Intl.DateTimeFormat(LOCALES[i18n.language] ?? "en-US", {
@@ -282,24 +286,13 @@ export default function Sidebar({
                           {formatSavedAt(item.updatedAt)}
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        {canShow && (
-                          <button
-                            type="button"
-                            onClick={() => onShowSavedResult(item.id)}
-                            className="rounded-lg border border-slate-600/60 bg-slate-900/40 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-900/70"
-                          >
-                            {t("sidebar.showOnMap")}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => onDeleteSavedResult(item.id)}
-                          className="rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20"
-                        >
-                          {t("sidebar.delete")}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSavedResult(item.id)}
+                        className="shrink-0 rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20"
+                      >
+                        {t("sidebar.delete")}
+                      </button>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -320,6 +313,27 @@ export default function Sidebar({
                         </p>
                       </div>
                     </div>
+
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onShowSavedResult(item.id)}
+                        disabled={!canShow}
+                        title={canShow ? undefined : t("card.noOutline")}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-600/60 bg-slate-900/40 px-2 py-2 text-[11px] font-medium text-slate-300 hover:bg-slate-900/70 disabled:cursor-not-allowed disabled:opacity-35"
+                      >
+                        🗺️ {t("sidebar.showOnMap")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCardEntryId(item.id)}
+                        disabled={!canShow}
+                        title={canShow ? undefined : t("card.noOutline")}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-green-500/25 bg-green-500/10 px-2 py-2 text-[11px] font-semibold text-green-400 hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-35"
+                      >
+                        🖼️ {t("card.button")}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -338,6 +352,14 @@ export default function Sidebar({
           {t("sidebar.footer")}
         </p>
       </div>
+
+      {cardEntry && (
+        <ShareCardModal
+          key={cardEntry.id}
+          entry={cardEntry}
+          onClose={() => setCardEntryId(null)}
+        />
+      )}
     </aside>
   );
 }

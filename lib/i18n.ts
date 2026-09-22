@@ -9,7 +9,76 @@ const resources = {
     translation: {
       nav: { home: "Home", tool: "Open tool →" },
       theme: { toLight: "Switch to light mode", toDark: "Switch to dark mode" },
-      lang: { label: "Language" },
+      lang: { label: "Language", en: "EN", ru: "RU", uz: "UZ" },
+      hero: {
+        badge: "OpenStreetMap + satellite imagery",
+        title: { prefix: "Measure land area", highlight: "online" },
+        desc: "Draw boundaries on a satellite map and get instant results in m², sotka, hectares and more. Free, fast, and accurate.",
+        ctaStart: "Start now",
+        ctaHow: "How it works?",
+      },
+      stats: { format: "formats", accuracy: "accuracy", free: "free" },
+      how: { label: "How it works", title: "3 simple steps" },
+      features: { label: "Features", title: "What can you do?" },
+      cases: { label: "Use cases", title: "Who can use it?" },
+      cta: {
+        title: "Try it now",
+        desc: "No sign up required. Open the tool and start measuring your land immediately.",
+        openTool: "Open tool",
+      },
+      landing: {
+        f1t: "Satellite map",
+        f1d: "Find any place and draw boundaries on high-resolution satellite imagery.",
+        f2t: "Multi-format result",
+        f2d: "See measurements in m², sotka, hectares, acres and km² at once.",
+        f3t: "Editable points",
+        f3d: "Drag boundary points to update results automatically on every change.",
+        f4t: "Accurate calculation",
+        f4d: "Geodesic calculation with Turf.js on WGS84, accounting for the earth's curvature.",
+        f5t: "Fast and free",
+        f5d: "No registration required. Open the page and start instantly.",
+        f6t: "Perimeter included",
+        f6d: "Get full perimeter together with area in meters and kilometers.",
+        f7t: "Your location (GPS)",
+        f7d: "Jump to where you stand with one tap and measure the plot right on site.",
+        f8t: "Share as an image",
+        f8d: "Turn any saved measurement into a PNG card with the satellite photo, outline, address and area.",
+        f9t: "Smart search",
+        f9d: "Instant suggestions for cities, streets and places — or paste coordinates.",
+        u1t: "Construction",
+        u1d: "Measure land plots allocated for construction",
+        u2t: "Agriculture",
+        u2d: "Calculate field and orchard areas",
+        u3t: "Real estate",
+        u3d: "Evaluate land and property size",
+        u4t: "Planning",
+        u4d: "Architecture and urban planning",
+        s1t: "Find location",
+        s1d: "Enter a city or address in the search field, or tap the GPS button",
+        s2t: "Draw area",
+        s2d: "Mark boundary point by point on the map",
+        s3t: "Get result",
+        s3d: "Area and perimeter are calculated automatically — save it as an image",
+      },
+      card: {
+        button: "PNG card",
+        title: "Shareable image",
+        generating: "Preparing the image...",
+        download: "Download PNG",
+        share: "Share",
+        close: "Close",
+        failed: "Could not create the image. Check your internet connection and try again.",
+        noOutline: "This measurement was saved before outlines were stored, so it can't be drawn.",
+        area: "Area",
+        perimeter: "Perimeter",
+        hectares: "Hectares",
+        sqMeters: "Square metres",
+        addressUnknown: "Address not found",
+        tagline: "Measure land area online",
+        points: "{{count}} points",
+        unitSotka: "sotka",
+        unitHa: "ha",
+      },
       units: {
         sqMeters: "Square metres",
         sotka: "Sotka",
@@ -115,11 +184,9 @@ const resources = {
         place: "Selected place",
       },
       footer: {
-        tech: "Powered by Leaflet + Turf.js • WGS84 coordinate system",
-        tool: "Use the tool →",
-      },
-      home: {
-        badge: "Powered by OpenStreetMap",
+        powered: "Powered by Leaflet + Turf.js",
+        system: "WGS84 coordinate system",
+        useTool: "Use the tool",
       },
     },
   },
@@ -130,7 +197,79 @@ const resources = {
         toLight: "Переключить на светлую тему",
         toDark: "Переключить на тёмную тему",
       },
-      lang: { label: "Язык" },
+      lang: { label: "Язык", en: "АН", ru: "РУ", uz: "УЗ" },
+      hero: {
+        badge: "Работает на OpenStreetMap и спутниковых снимках",
+        title: { prefix: "Измеряйте площадь участка", highlight: "онлайн" },
+        desc: "Нарисуйте границы на спутниковой карте и сразу получите результат в м², сотках, гектарах и других единицах.",
+        ctaStart: "Начать",
+        ctaHow: "Как это работает?",
+      },
+      stats: { format: "форматов", accuracy: "точность", free: "бесплатно" },
+      how: { label: "Как это работает", title: "3 простых шага" },
+      features: { label: "Возможности", title: "Что можно сделать?" },
+      cases: { label: "Применение", title: "Кому подойдет?" },
+      cta: {
+        title: "Попробуйте сейчас",
+        desc: "Регистрация не нужна. Откройте инструмент и начните измерять участок сразу.",
+        openTool: "Открыть инструмент",
+      },
+      landing: {
+        f1t: "Спутниковая карта",
+        f1d: "Найдите любое место и нарисуйте границы участка по спутниковому снимку высокого разрешения.",
+        f2t: "Результат в разных форматах",
+        f2d: "Одновременно смотрите м², сотки, гектары, акры и км².",
+        f3t: "Редактирование точек",
+        f3d: "Перетаскивайте точки границы — результат обновляется автоматически.",
+        f4t: "Точный расчет",
+        f4d: "Геодезический расчет Turf.js в системе WGS84 с учетом кривизны Земли.",
+        f5t: "Быстро и бесплатно",
+        f5d: "Без регистрации. Откройте страницу и начинайте сразу.",
+        f6t: "Периметр тоже есть",
+        f6d: "Получайте периметр вместе с площадью в метрах и километрах.",
+        f7t: "Ваше местоположение (GPS)",
+        f7d: "Одним нажатием перейдите туда, где стоите, и измерьте участок на месте.",
+        f8t: "Поделиться картинкой",
+        f8d: "Превратите сохраненное измерение в PNG-карточку со спутниковым снимком, контуром, адресом и площадью.",
+        f9t: "Умный поиск",
+        f9d: "Подсказки по городам, улицам и местам появляются сразу; можно вставить координаты.",
+        u1t: "Строительство",
+        u1d: "Измерение участков, выделенных под строительство",
+        u2t: "Сельское хозяйство",
+        u2d: "Расчет площади полей и садов",
+        u3t: "Недвижимость",
+        u3d: "Оценка площади земли и объектов",
+        u4t: "Проектирование",
+        u4d: "Архитектура и городское планирование",
+        s1t: "Найдите локацию",
+        s1d: "Введите город или адрес в строку поиска или нажмите кнопку GPS",
+        s2t: "Нарисуйте участок",
+        s2d: "Отмечайте границу точка за точкой на карте",
+        s3t: "Получите результат",
+        s3d: "Площадь и периметр считаются автоматически — сохраните их картинкой",
+      },
+      card: {
+        button: "PNG-картинка",
+        title: "Картинка для отправки",
+        generating: "Готовим изображение...",
+        download: "Скачать PNG",
+        share: "Поделиться",
+        close: "Закрыть",
+        failed: "Не удалось создать изображение. Проверьте интернет и попробуйте снова.",
+        noOutline: "Это измерение сохранено до того, как стали храниться контуры, поэтому его нельзя нарисовать.",
+        area: "Площадь",
+        perimeter: "Периметр",
+        hectares: "Гектары",
+        sqMeters: "Квадратные метры",
+        addressUnknown: "Адрес не найден",
+        tagline: "Измеряйте площадь участка онлайн",
+        points_one: "{{count}} точка",
+        points_few: "{{count}} точки",
+        points_many: "{{count}} точек",
+        points_other: "{{count}} точки",
+        unitSotka: "сотка",
+        unitHa: "га",
+      },
       units: {
         sqMeters: "Квадратные метры",
         sotka: "Сотки",
@@ -236,11 +375,9 @@ const resources = {
         place: "Выбранное место",
       },
       footer: {
-        tech: "Работает на Leaflet + Turf.js • WGS84",
-        tool: "Открыть инструмент →",
-      },
-      home: {
-        badge: "Работает на OpenStreetMap",
+        powered: "Работает на Leaflet + Turf.js",
+        system: "Система координат WGS84",
+        useTool: "Использовать инструмент",
       },
     },
   },
@@ -248,7 +385,76 @@ const resources = {
     translation: {
       nav: { home: "Bosh sahifa", tool: "Tool ni ochish →" },
       theme: { toLight: "Light modega o‘tish", toDark: "Dark modega o‘tish" },
-      lang: { label: "Til" },
+      lang: { label: "Til", en: "EN", ru: "RU", uz: "UZ" },
+      hero: {
+        badge: "OpenStreetMap va sun’iy yo‘ldosh xaritasi bilan ishlaydi",
+        title: { prefix: "Yer maydonini", highlight: "onlayn o‘lchang" },
+        desc: "Sun’iy yo‘ldosh xaritasida maydon chegarasini chizing va m², sotka, gektar hamda boshqa o‘lchovlarda natijani darhol oling.",
+        ctaStart: "Hoziroq boshlash",
+        ctaHow: "Qanday ishlaydi?",
+      },
+      stats: { format: "formati", accuracy: "aniqlik", free: "bepul" },
+      how: { label: "Qanday ishlaydi", title: "3 ta oddiy qadam" },
+      features: { label: "Imkoniyatlar", title: "Nima qila olasiz?" },
+      cases: { label: "Qo‘llanilishi", title: "Kim foydalanishi mumkin?" },
+      cta: {
+        title: "Hoziroq sinab ko‘ring",
+        desc: "Ro‘yxatdan o‘tish shart emas. Tool ni oching va darhol yer maydoningizni o‘lchang.",
+        openTool: "Tool ni ochish",
+      },
+      landing: {
+        f1t: "Sun’iy yo‘ldosh xaritasi",
+        f1d: "Istalgan joyni toping va yuqori aniqlikdagi sun’iy yo‘ldosh tasvirida maydon chegarasini chizing.",
+        f2t: "Ko‘p formatda natija",
+        f2d: "m², sotka, gektar, acres va km² o‘lchovlarda bir vaqtda natija ko‘ring.",
+        f3t: "Tahrirlash imkoni",
+        f3d: "Chizilgan maydon nuqtalarini sudrab o‘zgartiring va natija darhol yangilansin.",
+        f4t: "Aniq hisoblash",
+        f4d: "Turf.js geodezik hisoblashi asosida Yer egriligi inobatga olinadi (WGS84).",
+        f5t: "Tez va bepul",
+        f5d: "Hech qanday ro‘yxatdan o‘tish shart emas. Oching va ishlatishni boshlang.",
+        f6t: "Perimetr ham chiqadi",
+        f6d: "Maydon bilan birga to‘liq perimetrni metr va kilometrda oling.",
+        f7t: "Turgan joyingiz (GPS)",
+        f7d: "Bir bosishda turgan joyingizga o‘ting va yerni joyida o‘lchang.",
+        f8t: "Rasm qilib ulashish",
+        f8d: "Saqlangan o‘lchovni sun’iy yo‘ldosh surati, chegarasi, manzili va maydoni yozilgan PNG kartaga aylantiring.",
+        f9t: "Aqlli qidiruv",
+        f9d: "Shahar, ko‘cha va joylar yozishingiz bilan taklif qilinadi, koordinata ham kiritish mumkin.",
+        u1t: "Qurilish",
+        u1d: "Qurilish uchun ajratilgan yer maydonini o‘lchash",
+        u2t: "Qishloq xo‘jaligi",
+        u2d: "Dala va bog‘lar maydonini aniqlash",
+        u3t: "Ko‘chmas mulk",
+        u3d: "Yer va uy-joy maydonini baholash",
+        u4t: "Loyihalash",
+        u4d: "Arxitektura va shahar loyihalashtirish",
+        s1t: "Joylashuvni toping",
+        s1d: "Qidiruv qatoriga shahar yoki manzil yozing yoki GPS tugmasini bosing",
+        s2t: "Maydon chizing",
+        s2d: "Xaritada chegarani nuqtama-nuqta belgilang",
+        s3t: "Natijani oling",
+        s3d: "Maydon va perimetr avtomatik hisoblanadi — uni rasm qilib saqlang",
+      },
+      card: {
+        button: "PNG rasm",
+        title: "Ulashish uchun rasm",
+        generating: "Rasm tayyorlanmoqda...",
+        download: "PNG yuklab olish",
+        share: "Ulashish",
+        close: "Yopish",
+        failed: "Rasmni yaratib bo‘lmadi. Internet aloqasini tekshirib, qayta urinib ko‘ring.",
+        noOutline: "Bu o‘lchov chegaralar saqlanishidan oldin yozilgan, shuning uchun uni chizib bo‘lmaydi.",
+        area: "Maydon",
+        perimeter: "Perimetr",
+        hectares: "Gektar",
+        sqMeters: "Kvadrat metr",
+        addressUnknown: "Manzil aniqlanmadi",
+        tagline: "Yer maydonini onlayn o‘lchang",
+        points: "{{count}} nuqta",
+        unitSotka: "sotka",
+        unitHa: "ga",
+      },
       units: {
         sqMeters: "Kvadrat metr",
         sotka: "Sotka",
@@ -354,40 +560,51 @@ const resources = {
         place: "Tanlangan joy",
       },
       footer: {
-        tech: "Leaflet + Turf.js asosida ishlaydi • WGS84 koordinat tizimi",
-        tool: "Tool ni ishlatish →",
-      },
-      home: {
-        badge: "OpenStreetMap bilan ishlaydi",
+        powered: "Leaflet + Turf.js asosida ishlaydi",
+        system: "WGS84 koordinat tizimi",
+        useTool: "Tool ni ishlatish",
       },
     },
   },
 } as const;
 
-function safeInitialLanguage(): SupportedLanguage {
-  if (typeof window === "undefined") return "en";
+export const DEFAULT_LANGUAGE: SupportedLanguage = "uz";
+
+const STORAGE_KEY = "land-measure:locale";
+const LEGACY_STORAGE_KEY = "lang";
+
+export function isSupportedLanguage(value: unknown): value is SupportedLanguage {
+  return supportedLanguages.includes(value as SupportedLanguage);
+}
+
+export function readStoredLanguage(): SupportedLanguage {
+  if (typeof window === "undefined") return DEFAULT_LANGUAGE;
 
   try {
-    const stored = window.localStorage.getItem("lang");
-    if (stored === "en" || stored === "ru" || stored === "uz") return stored;
+    const stored =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    return isSupportedLanguage(stored) ? stored : DEFAULT_LANGUAGE;
   } catch {
-    // Fall through to the default language.
+    return DEFAULT_LANGUAGE;
   }
+}
 
-  return "en";
+export function storeLanguage(language: SupportedLanguage): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, language);
+  } catch {
+    // The choice just won't survive a reload.
+  }
 }
 
 if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
     resources,
-    lng: "en",
+    lng: DEFAULT_LANGUAGE,
     fallbackLng: "en",
     interpolation: { escapeValue: false },
   });
-
-  if (typeof window !== "undefined") {
-    void i18n.changeLanguage(safeInitialLanguage());
-  }
 }
 
 export default i18n;

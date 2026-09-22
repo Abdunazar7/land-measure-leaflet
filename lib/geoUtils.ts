@@ -139,6 +139,13 @@ export function boundsOf(
   return [south, north, west, east];
 }
 
+/** "4974484.8" -> "4 974 484.8"; only the integer part is grouped. */
+export function groupThousands(value: string, separator = " "): string {
+  const [integer = "", fraction] = value.split(".");
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`;
+}
+
 export function formatPerimeter(meters: number): string {
   if (meters < 1000) return `${meters.toFixed(1)} m`;
   return `${(meters / 1000).toFixed(3)} km`;

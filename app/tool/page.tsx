@@ -90,7 +90,7 @@ export default function ToolPage() {
     <div className="min-h-svh bg-[#0a0c12] lg:h-svh lg:overflow-hidden">
       <Navbar />
 
-      <main className="mt-16 flex min-h-[calc(100svh-4rem)] flex-col lg:h-[calc(100svh-4rem)] lg:flex-row lg:overflow-hidden">
+      <main className="mt-[103px] flex min-h-[calc(100svh-103px)] flex-col sm:mt-16 sm:min-h-[calc(100svh-4rem)] lg:h-[calc(100svh-4rem)] lg:flex-row lg:overflow-hidden">
         <div className="order-1 h-[52svh] min-h-[320px] min-w-0 shrink-0 lg:order-2 lg:h-full lg:flex-1">
           <MapComponent
             polygons={polygons}

@@ -3,8 +3,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { SupportedLanguage } from "@/lib/i18n";
-import { supportedLanguages } from "@/lib/i18n";
+import {
+  isSupportedLanguage,
+  storeLanguage,
+  supportedLanguages,
+  type SupportedLanguage,
+} from "@/lib/i18n";
 
 type ThemeMode = "dark" | "light";
 
@@ -20,20 +24,20 @@ export default function Navbar() {
   const pathname = usePathname();
   const isTool = pathname === "/tool";
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
-  const [lang, setLang] = useState<SupportedLanguage>("en");
+
+  const locale: SupportedLanguage = isSupportedLanguage(i18n.language)
+    ? i18n.language
+    : "uz";
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem("lang");
-    const initial =
-      stored === "en" || stored === "ru" || stored === "uz" ? stored : "en";
-    setLang(initial);
-    void i18n.changeLanguage(initial);
-  }, [i18n]);
+  const setLocale = (next: SupportedLanguage) => {
+    storeLanguage(next);
+    void i18n.changeLanguage(next);
+  };
 
   const toggleTheme = () => {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
@@ -72,8 +76,7 @@ export default function Navbar() {
                 : "text-(--text-secondary) hover:bg-black/5 hover:text-(--text-primary) dark:hover:bg-white/5"
             }`}
           >
-            <span className="hidden sm:inline">{t("nav.home")}</span>
-            <span className="sm:hidden">{t("nav.home")}</span>
+            {t("nav.home")}
           </Link>
           <Link
             href="/tool"
@@ -84,28 +87,29 @@ export default function Navbar() {
             }`}
           >
             <span className="hidden sm:inline">{t("nav.tool")}</span>
-            <span className="sm:hidden">{t("nav.tool")}</span>
+            <span className="sm:hidden">Tool →</span>
           </Link>
-          <label className="sr-only" htmlFor="lang">
-            {t("lang.label")}
-          </label>
-          <select
-            id="lang"
-            value={lang}
-            onChange={(e) => {
-              const next = e.target.value as SupportedLanguage;
-              setLang(next);
-              window.localStorage.setItem("lang", next);
-              void i18n.changeLanguage(next);
-            }}
-            className="h-9 rounded-xl border border-(--border-muted) bg-(--panel-soft) px-2 text-xs text-(--text-primary) outline-none sm:h-10 sm:text-sm"
+          <div
+            role="group"
+            aria-label={t("lang.label")}
+            className="hidden items-center rounded-xl border border-(--border-muted) bg-(--panel-soft) p-1 sm:flex"
           >
-            {supportedLanguages.map((code) => (
-              <option key={code} value={code}>
-                {code.toUpperCase()}
-              </option>
+            {supportedLanguages.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setLocale(item)}
+                aria-pressed={locale === item}
+                className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+                  locale === item
+                    ? "bg-green-500 text-black"
+                    : "text-(--text-secondary) hover:text-(--text-primary)"
+                }`}
+              >
+                {t(`lang.${item}`)}
+              </button>
             ))}
-          </select>
+          </div>
           <button
             type="button"
             onClick={toggleTheme}
@@ -115,9 +119,31 @@ export default function Navbar() {
             }
             title={theme === "dark" ? t("theme.toLight") : t("theme.toDark")}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-(--border-muted) bg-(--panel-soft) text-base transition-transform hover:scale-105 sm:h-10 sm:w-10 sm:text-lg"
+            suppressHydrationWarning
           >
-            <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+            <span aria-hidden="true" suppressHydrationWarning>
+              {theme === "dark" ? "☀️" : "🌙"}
+            </span>
           </button>
+        </div>
+      </div>
+      <div className="border-t border-(--border-muted) px-3 py-1.5 sm:hidden">
+        <div className="mx-auto flex max-w-7xl items-center justify-end gap-2">
+          {supportedLanguages.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setLocale(item)}
+              aria-pressed={locale === item}
+              className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+                locale === item
+                  ? "bg-green-500 text-black"
+                  : "text-(--text-secondary)"
+              }`}
+            >
+              {t(`lang.${item}`)}
+            </button>
+          ))}
         </div>
       </div>
     </nav>

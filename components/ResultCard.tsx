@@ -1,6 +1,11 @@
 "use client";
 import { useTranslation } from "react-i18next";
-import { AreaResult, formatArea, formatPerimeter } from "@/lib/geoUtils";
+import {
+  AreaResult,
+  formatArea,
+  formatPerimeter,
+  groupThousands,
+} from "@/lib/geoUtils";
 
 interface Props {
   result: AreaResult;
@@ -12,9 +17,6 @@ const metrics = [
   { key: "hectares", labelKey: "units.hectaresShort", decimals: 4 },
   { key: "acres", labelKey: "units.acresShort", decimals: 3 },
 ] as const;
-
-const groupDigits = (value: string) =>
-  value.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
 export default function ResultCard({ result }: Props) {
   const { t } = useTranslation();
@@ -46,7 +48,7 @@ export default function ResultCard({ result }: Props) {
               {t(metric.labelKey)}
             </p>
             <p className="font-mono text-sm font-semibold text-slate-200">
-              {groupDigits(Number(result[metric.key]).toFixed(metric.decimals))}
+              {groupThousands(Number(result[metric.key]).toFixed(metric.decimals))}
             </p>
           </div>
         ))}
