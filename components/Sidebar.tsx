@@ -65,7 +65,7 @@ export default function Sidebar({
   const gpsError = gps.errorCode ? t(`gps.errors.${gps.errorCode}`) : null;
 
   return (
-    <aside className="flex w-full flex-col border-b border-slate-800 bg-[#0f1117] lg:h-full lg:overflow-hidden lg:border-b-0 lg:border-r">
+    <aside className="flex w-full flex-col border-b border-slate-800 bg-[#0f1117] lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
       {/* Header */}
       <div className="border-b border-slate-800 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
@@ -220,7 +220,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="space-y-4 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="flex-1 space-y-4 p-3 sm:p-4">
         {/* Current result or instructions */}
         {result ? (
           <section>
